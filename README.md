@@ -1,75 +1,75 @@
-# Création d'un rapport de rétrofacturation pour Azure Purview
+# Create a chargeback report for Azure Purview
 
-Nous allons voir comment utiliser les informations d'Azure Log Analytics afin de créer un rapport permettant la retrofacturation d'utilisation des scans.
-Ci-dessous une illustration d'un exemple de type de rapport que vous pourrez créer :
+We'll see how to use information from Azure Log Analytics to create a chargeback report.
+The following is an illustration of the type of report that you can create:
 
 ![sparkle](Pictures/000.png)
 
 
 ## Pre requis
 
-- Un compte [Azure Purview](https://docs.microsoft.com/fr-fr/azure/purview/create-catalog-portal)
-- Un espace de travail [Azure Log Analytics](https://docs.microsoft.com/fr-fr/azure/azure-monitor/logs/quick-create-workspace)
+- An [Azure Purview account](https://docs.microsoft.com/fr-fr/azure/purview/create-catalog-portal)
+- An [Azure Log Analytics workspace](https://docs.microsoft.com/fr-fr/azure/azure-monitor/logs/quick-create-workspace)
 - [Power BI Desktop](https://www.microsoft.com/fr-fr/download/details.aspx?id=58494) 
-- Optinonel : une licence Power BI Pro ou Premium
+- Optional: a Power BI Pro or Premium license
 
 
 ## Azure Purview
-### Configuration d'Azure Purview
+### Azure Purview setup
 
-Dans un premier temps, nous allons configuer Azure Purview afin d'envoyer les informations de télémétries à Azure Log Analytics
+First, we'll configure Azure Purview to send telemetry to Azure Log Analytics
 
-Depuis le portail Azure, cherchez et sélectionnez votre compte Azure Purview
-Cliquez sur **"Diagnostic settings"**, puis sur **"+ Add diagnostic setting"**
+From the Azure portal, find and select your Azure Purview account
+click **"Diagnostic settings"**, then **"+ Add diagnostic setting"**
 
 ![sparkle](Pictures/001.png)
 
-Dans la fenêtre "Diagnostic setting", dans la partie "Category details" cochez les cases :
+In the "Diagnostic setting" window, in the "Category details" section, check:
 - ScanStatusLogEvent
 - AllMetrics
 
-Puis dans la partie "Destination details" cochez la case **"Send to Log Analytics workspace"** et resneignez les information de votre espace de travail Azure Log analytics.
+Then in the "Destination details" part check the box **"Send to Log Analytics workspace"** and fill in the information for your Azure Log Analytics workspace.
 
-Cliquez sur le bouton **"Save"**
+Click **"Save"**
 
 ![sparkle](Pictures/002.png)
 
 
 ## Azure Log Analytics
-### Création de la requête Azure Log Analytics
+### Create the Azure Log Analytics query
 
-Depuis le portail Azure, cherchez et sélectionnez votre espace de travail Azure Log Analytics
+From the Azure portal, find and select your Azure Log Analytics workspace
 
-Puis cliquez sur **"Logs"**
+Click **"Logs"**
 
 
 ![sparkle](Pictures/003.png)
 
-Nous allons utiliser les informations provenant de la table "PurviewScanStatusLogs"
-Copiez la requête ci-dessous afin de récupérer les logs des 30 derniers jours :
+We will use the information from the "PurviewScanStatusLogs" table
+Copy the query below in order to retrieve the logs for the last 30 days:
 
 ```javascript
 PurviewScanStatusLogs
 | where TimeGenerated > ago(30d)
 ```
 
-Collez cette requête dans l'éditeur comme illustré dans la copie d'écran ci-dessous, puis cliquez sur **"Run"**  :
+Paste this query into the editor as shown in the screenshot below, and then click **"Run"**  :
 
 ![sparkle](Pictures/004.png)
 
-### Export vers Power BI
-Maintenant que nous avons le résultat désiré, nous allons l'exporter vers Power BI
+### Export to Power BI
+Now that we have the desired result, we will export it to Power BI
 
-CLiquez sur le bouton **"Export"**, puis sur **"Export to Power BI (M query)"**
+click **"Export"**, then click **"Export to Power BI (M query)"**
 
 ![sparkle](Pictures/005.png)
 
-Un fichier texte est alors généré puis téléchargé avec le script M permettant la récupération des données depuis Power BI Desktop.
+A text file is then generated and downloaded with the M script allowing data recovery from Power BI Desktop.
 
 ![sparkle](Pictures/006.png)
 
-## Création du rapport Power BI
-### Récupéation des données Azure Log Analytics
+## Report creation
+### Retrieving Azure Log Analytics data
 
 Ouvrez le fichier texte précédement téléchargé puis copiez le script M (la partie encadrée en rouge)
 
