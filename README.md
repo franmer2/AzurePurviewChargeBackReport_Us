@@ -71,26 +71,26 @@ A text file is then generated and downloaded with the M script allowing data rec
 ## Report creation
 ### Retrieving Azure Log Analytics data
 
-Ouvrez le fichier texte précédement téléchargé puis copiez le script M (la partie encadrée en rouge)
+Open the previously downloaded text file and copy the M script (the part framed in red)
 
 ![sparkle](Pictures/007.png)
 
-Depuis Power BI Desktop, cliquez sur **"Get data"** puis **"Blank Query"**
+From Power BI Desktop, click **"Get data"** then **"Blank Query"**
 
 ![sparkle](Pictures/008.png)
 
-une fois dans Power Query Editor, dans l'onglet **"Home"**, cliquez sur **"Advanced Editor"**
+once in the Power Query Editor, in **"Home"** tab, click **"Advanced Editor"**
 
 ![sparkle](Pictures/009.png)
 
-Supprimez le code par défault puis collez le script M copiez précédement, puis cliquez sur **"Done"** :
+Delete the default code and then paste the M script you copied before, and then click  **"Done"** :
 ![sparkle](Pictures/010.png)
 
-Vous devez obtenir un résultat similaire à celui ci-dessous. Vous pouvez aussi renommer la requête directement depuis le champ **"Name"**
+You should get a result similar to the one below. You can also rename the query directly from the field **"Name"**
 
 ![sparkle](Pictures/011.png)
 
-Cliquez sur le bouton **"Close & Apply"** pour revenir dans Power BI desktop et commencer à créer votre rapport
+Click **"Close & Apply"** to go back to Power BI desktop and start creating your report
 
 ![sparkle](Pictures/012.png)
 
