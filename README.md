@@ -171,3 +171,117 @@ Click the **"Done"** button. You will achieve a result similar to the one below.
 
 ![](Pictures/017.png)
 
+Now that you have the initial query that retrieves the data, we will reference it, so that we can use it as a basis for rebuilding the hierarchy of our organization.
+
+Right-click the previously created Azure Purview query, and then select **"reference"**
+
+![](Pictures/018.png)
+
+Once the reference is made, select the new query and click on **"Advanced Editor"**. You should get something similar to the screenshot below
+
+
+![](Pictures/019.png)
+
+ Copy the M script below to rebuild the flowchart hierarchy present in Azure Purview
+
+```Javascript
+let
+    Source = AzurePurviewData,
+    #"Filtered Rows" = Table.SelectRows(Source, each ([kind] = "Collection")),
+    #"Renamed Columns" = Table.RenameColumns(#"Filtered Rows",{{"parentCollection.referenceName", "ParentName"}, {"name", "ChildName"}}),
+
+    ListChild = List.Buffer(#"Renamed Columns"[ChildName]),
+    ListParent = List.Buffer(#"Renamed Columns"[ParentName]),
+
+
+    fnCreateHiearchy = (n as text) as text =>
+        let 
+            ParentPosition = List.PositionOf (ListChild, n),
+            ParentName = ListParent{ParentPosition},
+            ChildName = ListChild{ParentPosition}     
+        in 
+            if ParentName = null then ListChild{ParentPosition} else @fnCreateHiearchy(ParentName) & "|" & ChildName,
+
+    FinaleTable = Table.AddColumn(#"Renamed Columns", "Collections", each fnCreateHiearchy([ChildName]), type text)
+in
+    FinaleTable
+
+```
+
+You should get something like this:
+
+![](Pictures/020.png)
+
+Click the **"Done"** button. You should get the following result. Note the new column **"Collections"** which will represent the Parent-Child relationships of your organization chart.
+
+Consider renaming your query.
+
+![](Pictures/021.png)
+
+Now that you have the basic material, you can continue to develop your report as you see fit. For example, use the feature **"Split Column by delimiter"** to create one column per child of your flowchart, to then use them with the visual **"Decomposition tree"**. 
+
+#### Privacy Level
+
+If the report is to be deployed to Power BI Service, it's important to set the right level of privacy for your data sources.
+The first time you sign in to Azure Log Analytics, the window below appears. Choose **"Organizational account"** and click **"Sign In"**
+
+
+![](Pictures/022.png)
+
+
+Therefore the connection was made using an **"Organizational"** level for this data source. To avoid problems after the report is published to Power BI Service, it's important that all other data sources in the report are at the same level of privacy.
+
+For **ALL** other data sources, do the following steps
+
+Click on **"Transform data"** then on **"Data source settings"**
+
+![](Pictures/023.png)
+
+In the **"Data Source Setting"** window, select a data source and then click **"Edit Permissions"**
+
+
+![](Pictures/024.png)
+
+In the **"Privacy Level"** field, select the **"organizational"** level, then click the **"Ok"** button to validate
+
+![](Pictures/025.png)
+
+Repeat for other data sources
+
+
+## What I learned with the creation of this report
+### Updating the Model Schema
+
+I tried to dynamically create the creation of the number of columns based on the number of levels in my flowchart.
+
+So in Power BI Desktop, I used the following M script:
+
+```Javascript
+    DynamicColumList = List.Transform({
+        1..List.Max(Table.AddColumn(#"Renamed Columns1","NbDelimiter",each List.Count(Text.PositionOfAny([CollectionLevel],{"|"},Occurrence.All)
+        ))[NbDelimiter]
+        )+1
+
+    },each "CollectionLevel." & Text.From(_)),  
+    
+    
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Renamed Columns1", "CollectionLevel", Splitter.SplitTextByDelimiter("|", QuoteStyle.Csv),DynamicColumList)
+
+```
+
+This works great in Power BI Desktop, and my model adds or removes columns based on the number of levels in my flowchart. But not in Power BI service. When updating the report
+
+Power BI Desktop recreates the model schema while Power BI service simply reloads the information during the update, without touching the schema. It is therefore necessary to anticipate the number of levels of the one wishes to display in the report 
+
+### Privacy Level
+
+When the report was first created, I wanted to separate the various requests by 'role', so to speak. For example, a first request to retrieve the Bearer Token, another to connect to Azure Purview, and then another to create the hierarchies.
+
+However, even though it worked very well with Power BI Desktop, once I was published in Power BI Service, I got the following error after the update:
+
+![](Pictures/027.png)
+
+*"Processing error: [Unable to combine data] Section1/AzurePurviewData/Removed Other Columns references other queries or steps, so it may not directly access a data source. Please rebuild this data combination."*
+
+So I had to merge my first 2 requests (get the token and then sign in to Azure Purview) and then set the privacy levels.
+
