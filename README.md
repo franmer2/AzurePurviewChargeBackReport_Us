@@ -155,11 +155,17 @@ let
     value = Source[value],
     #"Converted to Table" = Table.FromList(value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
     #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"properties", "kind", "id", "name"}, {"properties", "kind", "id", "name"}),
-    #"Expanded properties" = Table.ExpandRecordColumn(#"Expanded Column1", "properties", {"createdAt", "lastModifiedAt", "parentCollection", "collection", "serviceUrl", "roleARN", "awsAccountId", "endpoint", "resourceGroup", "subscriptionId", "location", "resourceName", "tenant", "serverEndpoint", "dedicatedSqlEndpoint", "serverlessSqlEndpoint", "host", "applicationServer", "systemNumber", "clusterUrl", "port", "service"}, {"createdAt", "lastModifiedAt", "parentCollection", "collection", "serviceUrl", "roleARN", "awsAccountId", "endpoint", "resourceGroup", "subscriptionId", "location", "resourceName", "tenant", "serverEndpoint", "dedicatedSqlEndpoint", "serverlessSqlEndpoint", "host", "applicationServer", "systemNumber", "clusterUrl", "port", "service"}),
-    #"Expanded parentCollection" = Table.ExpandRecordColumn(#"Expanded properties", "parentCollection", {"type", "referenceName"}, {"parentCollection.type", "parentCollection.referenceName"}),
-    #"Removed Other Columns" = Table.SelectColumns(#"Expanded parentCollection",{"parentCollection.referenceName", "kind", "id", "name"})
+    #"Expanded properties" = Table.ExpandRecordColumn(#"Expanded Column1", "properties", {"parentCollection", "collection"}, {"parentCollection", "collection"}),
+    #"Expanded collection" = Table.ExpandRecordColumn(#"Expanded properties", "collection", {"referenceName"}, {"referenceName"}),
+    #"Removed Columns" = Table.RemoveColumns(#"Expanded collection",{"parentCollection"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"referenceName", "Collection"}}),
+    #"Duplicated Column" = Table.DuplicateColumn(#"Renamed Columns", "Collection", "Collection - Copy"),
+    #"Reordered Columns" = Table.ReorderColumns(#"Duplicated Column",{"Collection - Copy", "Collection", "kind", "id", "name"}),
+    #"Renamed Columns1" = Table.RenameColumns(#"Reordered Columns",{{"Collection - Copy", "ChildName"}}),
+    #"Lowercased Text" = Table.TransformColumns(#"Renamed Columns1",{{"ChildName", Text.Lower, type text}}),
+    #"Renamed Columns2" = Table.RenameColumns(#"Lowercased Text",{{"name", "DataSourceName"}})
 in
-    #"Removed Other Columns"
+    #"Renamed Columns2"
 
 ```
 
@@ -171,28 +177,43 @@ Click the **"Done"** button. You will achieve a result similar to the one below.
 
 ![](Pictures/017.png)
 
-Now that you have the initial query that retrieves the data, we will reference it, so that we can use it as a basis for rebuilding the hierarchy of our organization.
+Repeat the operation above to create a new blank query to get Azure Purview collections.
 
-Right-click the previously created Azure Purview query, and then select **"reference"**
+In the new blank query, paste the following M script.
+This script will call the new collection API and recreate the hierarchy (with the *"fnCreateHiearchy"* function):
 
-![](Pictures/018.png)
-
-Once the reference is made, select the new query and click on **"Advanced Editor"**. You should get something similar to the screenshot below
-
-
-![](Pictures/019.png)
-
- Copy the M script below to rebuild the flowchart hierarchy present in Azure Purview
-
-```Javascript
+```javascript
 let
-    Source = AzurePurviewData,
-    #"Filtered Rows" = Table.SelectRows(Source, each ([kind] = "Collection")),
-    #"Renamed Columns" = Table.RenameColumns(#"Filtered Rows",{{"parentCollection.referenceName", "ParentName"}, {"name", "ChildName"}}),
+    
+    url = "https://login.microsoftonline.com/<YOUR TENANT ID>/oauth2/token",
+    myGrant_type = "client_credentials",
+    myResource = "73c2949e-da2d-457a-9607-fcc665198967",  //It could also be "https://purview.azure.net" 
+    myClient_id = "<YOUR CLIENT ID>",
+    myClient_secret = "<YOUR CLIENT SECRET>",
 
-    ListChild = List.Buffer(#"Renamed Columns"[ChildName]),
-    ListParent = List.Buffer(#"Renamed Columns"[ParentName]),
+    body  = "grant_type=" & myGrant_type & "&resource=" & myResource & "&client_id=" & myClient_id & "&client_secret=" & myClient_secret,
+    tokenResponse = Json.Document(Web.Contents(url,[Headers = [#"Content-Type"="application/x-www-form-urlencoded"], Content =  Text.ToBinary(body) ] )), 
+    
+        
+    
+    data_url = "https://<YOUR AZURE PURVIEW ACCOUNT NAME>.purview.azure.com/account/collections?api-version=2019-11-01-preview",
+    AccessTokenHeader = "Bearer " & tokenResponse[access_token],
 
+    Source = Json.Document(Web.Contents(data_url, [Headers=[Authorization= AccessTokenHeader,#"Content-Type"="application/json"]])),
+    value = Source[value],
+    #"Converted to Table" = Table.FromList(value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"name", "friendlyName", "parentCollection", "systemData", "collectionProvisioningState", "description"}, {"Column1.name", "Column1.friendlyName", "Column1.parentCollection", "Column1.systemData", "Column1.collectionProvisioningState", "Column1.description"}),
+    #"Expanded Column1.parentCollection" = Table.ExpandRecordColumn(#"Expanded Column1", "Column1.parentCollection", {"type", "referenceName"}, {"Column1.parentCollection.type", "Column1.parentCollection.referenceName"}),
+    #"Expanded Column1.systemData" = Table.ExpandRecordColumn(#"Expanded Column1.parentCollection", "Column1.systemData", {"createdBy", "createdByType", "createdAt", "lastModifiedByType", "lastModifiedAt", "lastModifiedBy"}, {"Column1.systemData.createdBy", "Column1.systemData.createdByType", "Column1.systemData.createdAt", "Column1.systemData.lastModifiedByType", "Column1.systemData.lastModifiedAt", "Column1.systemData.lastModifiedBy"}),
+    #"Lowercased Text" = Table.TransformColumns(#"Expanded Column1.systemData",{{"Column1.name", Text.Lower, type text}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Lowercased Text",{"Column1.systemData.createdBy", "Column1.systemData.createdByType", "Column1.systemData.createdAt", "Column1.systemData.lastModifiedByType", "Column1.systemData.lastModifiedAt", "Column1.systemData.lastModifiedBy", "Column1.collectionProvisioningState"}),
+    #"Sorted Rows" = Table.Sort(#"Removed Columns",{{"Column1.parentCollection.type", Order.Ascending}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Sorted Rows",{{"Column1.parentCollection.referenceName", "ParentName"}, {"Column1.name", "ChildName"}}),
+    #"Sorted Rows1" = Table.Sort(#"Renamed Columns",{{"ParentName", Order.Ascending}}),
+
+    ListChild= List.Buffer(#"Sorted Rows1"[ChildName]),
+    ListParent= List.Buffer(#"Sorted Rows1"[ParentName]),  
+    
 
     fnCreateHiearchy = (n as text) as text =>
         let 
@@ -201,22 +222,45 @@ let
             ChildName = ListChild{ParentPosition}     
         in 
             if ParentName = null then ListChild{ParentPosition} else @fnCreateHiearchy(ParentName) & "|" & ChildName,
-
-    FinaleTable = Table.AddColumn(#"Renamed Columns", "Collections", each fnCreateHiearchy([ChildName]), type text)
+            FinaleTable = Table.AddColumn(#"Renamed Columns", "Collections", each fnCreateHiearchy([ChildName]), type text),
+    #"Duplicated Column" = Table.DuplicateColumn(FinaleTable, "Collections", "Collections - Copy"),
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Duplicated Column", "Collections - Copy", Splitter.SplitTextByEachDelimiter({"|"}, QuoteStyle.Csv, true), {"Collections - Copy.1", "Collections - Copy.2"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"Collections - Copy.1", type text}, {"Collections - Copy.2", type text}}),
+    #"Renamed Columns1" = Table.RenameColumns(#"Changed Type",{{"Collections - Copy.2", "LeafCollection"}}),
+    #"Removed Columns1" = Table.RemoveColumns(#"Renamed Columns1",{"LeafCollection", "Collections - Copy.1"})
 in
-    FinaleTable
+    #"Removed Columns1"
+
 
 ```
 
-You should get something like this:
+You should get something like below. Rename this query.
+
+![](Pictures/018.png)
+
+
+You have now all enought information to create your report. But you can also create a merged query to create only one table for your final users.
+
+Create a third banlk query and paste the following M script:
+
+
+```Javascript
+let
+    Source = AzurePurviewData,
+    #"Merged Queries" = Table.NestedJoin(Source, {"ChildName"}, Collections, {"ChildName"}, "Collections", JoinKind.LeftOuter),
+    #"Expanded Collections" = Table.ExpandTableColumn(#"Merged Queries", "Collections", {"Collections"}, {"Collections.1"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Expanded Collections",{{"Collections.1", "Level"}, {"Collection", "Leaf.Collection"}}),
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Renamed Columns", "Level", Splitter.SplitTextByDelimiter("|", QuoteStyle.Csv), {"Level.1", "Level.2", "Level.3", "Level.4", "Level.5"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"Level.1", type text}, {"Level.2", type text}, {"Level.3", type text}, {"Level.4", type text}, {"Level.5", type text}})
+in
+    #"Changed Type"
+
+```
+
+You should get something like below. Rename your query.
 
 ![](Pictures/020.png)
 
-Click the **"Done"** button. You should get the following result. Note the new column **"Collections"** which will represent the Parent-Child relationships of your organization chart.
-
-Consider renaming your query.
-
-![](Pictures/021.png)
 
 Now that you have the basic material, you can continue to develop your report as you see fit. For example, use the feature **"Split Column by delimiter"** to create one column per child of your flowchart, to then use them with the visual **"Decomposition tree"**. 
 
