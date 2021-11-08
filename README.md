@@ -1,6 +1,6 @@
 # Create a chargeback report for Azure Purview
 
-I was led to create this report during a client project in order to track the costs of the different scans per collection. 
+I was led to create this report during a client project in order to track the costs of the different scans per collection. A report template is available [here]() 
 
 ***********************
 
