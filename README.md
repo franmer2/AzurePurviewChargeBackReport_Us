@@ -241,7 +241,7 @@ You should get something like below. Rename this query.
 
 You have now all enought information to create your report. But you can also create a merged query to create only one table for your final users.
 
-Create a third banlk query and paste the following M script:
+Create a third blank query and paste the following M script:
 
 
 ```Javascript
