@@ -20,6 +20,7 @@ The following is an illustration of the type of report that you can create:
 
 - An [Azure Purview account](https://docs.microsoft.com/en-us/azure/purview/create-catalog-portal)
 - An [Azure Log Analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/quick-create-workspace)
+- microsoft.insights resource provider registered
 - [Power BI Desktop](https://www.microsoft.com/en-us/download/details.aspx?id=58494) 
 - Optional: a Power BI Pro or Premium license
 
