@@ -325,7 +325,7 @@ However, even though it worked very well with Power BI Desktop, once I was publi
 
 ![](Pictures/027.png)
 
-*"Processing error: [Unable to combine data] Section1/AzurePurviewData/Removed Other Columns references other queries or steps, so it may not directly access a data source. Please rebuild this data combination."*
+*"Processing error: [Unable to combine data] Section1/AzurePurviewData/Removed Other Columns references other queries or steps, so it may not directly access a data source. Please rebuild this data combination." *
 
 So I had to merge my first 2 requests (get the token and then sign in to Azure Purview) and then set the privacy levels.
 
