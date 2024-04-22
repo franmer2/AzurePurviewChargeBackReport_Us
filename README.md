@@ -9,7 +9,6 @@ I was led to create this report during a client project in order to track the co
 **********************
 
 
-
 We'll see how to use information from Azure Log Analytics to create a chargeback report.
 The following is an illustration of the type of report that you can create:
 
